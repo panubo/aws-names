@@ -72,7 +72,7 @@ def render_unbound(records, val_type, domain):
 {% endfor %}{% endfor %}"""
 
     j2_env = Environment()
-    j2_env.filters = filters
+    j2_env.filters.update(filters)
     output = j2_env.from_string(template).render(records=records, val_type=val_type, domains=domain)
     click.echo(output)
 
@@ -86,6 +86,7 @@ def dns_clean(name):
             name_clean += "-"
     return name_clean[0:63]
 
+# From: jgbarah https://stackoverflow.com/a/22238613/3863307 (CC BY-SA 3.0)
 def json_serial(obj):
     """JSON serializer for objects not serializable by default json code"""
 
