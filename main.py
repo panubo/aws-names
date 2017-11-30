@@ -37,24 +37,27 @@ def main(**kwargs):
     records = []
 
     for instance in instances['Reservations']:
-        details = {
-            'InstanceId': instance['Instances'][0]['InstanceId'],
-            'PrivateIpAddress': instance['Instances'][0]['PrivateIpAddress'],
-            'PublicIpAddress': instance['Instances'][0]['PublicIpAddress'],
-            'PublicDnsName': instance['Instances'][0]['PublicDnsName'],
-            'DomainNames': []
-        }
-        # Loop over tags, pull out useful tags
-        for tag in instance['Instances'][0]['Tags']:
-            if tag['Key'] == 'Name' and tag['Value'].endswith(kwargs['domain']):
-                for domain in kwargs['domain']:
-                    if tag['Value'].endswith(domain):
-                        details[tag['Key']] = dns_clean(tag['Value'][:len(tag['Value'])-len(domain)-1]) # -1 to remove .
-            elif tag['Key'] in ['Name', 'Role']:
-                details[tag['Key']] = dns_clean(tag['Value'])
-            elif kwargs['allowed_domain'] and tag['Key'].startswith('DomainName') and tag['Value'].endswith(kwargs['allowed_domain']):
-                details['DomainNames'].append(tag['Value'])
-        records.append(details)
+        try:
+            details = {
+                'InstanceId': instance['Instances'][0]['InstanceId'],
+                'PrivateIpAddress': instance['Instances'][0]['PrivateIpAddress'],
+                'PublicIpAddress': instance['Instances'][0]['PublicIpAddress'],
+                'PublicDnsName': instance['Instances'][0]['PublicDnsName'],
+                'DomainNames': []
+            }
+            # Loop over tags, pull out useful tags
+            for tag in instance['Instances'][0]['Tags']:
+                if tag['Key'] == 'Name' and tag['Value'].endswith(kwargs['domain']):
+                    for domain in kwargs['domain']:
+                        if tag['Value'].endswith(domain):
+                            details[tag['Key']] = dns_clean(tag['Value'][:len(tag['Value'])-len(domain)-1]) # -1 to remove .
+                elif tag['Key'] in ['Name', 'Role']:
+                    details[tag['Key']] = dns_clean(tag['Value'])
+                elif kwargs['allowed_domain'] and tag['Key'].startswith('DomainName') and tag['Value'].endswith(kwargs['allowed_domain']):
+                    details['DomainNames'].append(tag['Value'])
+            records.append(details)
+        except KeyError as e:
+            print >> sys.stderr, "Skipping %s due to KeyError on: %s" % (instance['Instances'][0]['InstanceId'], e)
 
     if kwargs['debug']: click.echo(pjson(records))
     render_unbound(records, kwargs['val_type'], kwargs['domain'])
